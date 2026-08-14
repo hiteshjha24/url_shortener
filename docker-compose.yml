@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # 1. Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: url_shortener_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # 2. FastAPI Web API Service
+  web:
+    build: .
+    container_name: url_shortener_web
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=sqlite:///./url_shortener.db
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    restart: unless-stopped
