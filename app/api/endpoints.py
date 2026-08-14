@@ -2,13 +2,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-
+from app.services.cache import delete_cached_url
 from app.db.session import getdb
 from app.schemas.url import URLCreate, URLResponse, URLStats
 from app.services.crud import (
     get_url_by_short_code,
     create_url_record,
-    increment_click_count,
+    increment_click_count_background,
     deactivate_url_records,
 )
 from app.services.shortener import generate_random_code, calculate_expiration_date
@@ -83,16 +83,11 @@ def get_url_statistics(
 
 
 @router.delete("/shorten/{short_code}", status_code=status.HTTP_200_OK)
-def delete_short_url(
-    short_code: str,
-    db: Session = Depends(getdb)
-):
+def delete_short_url(short_code: str, db: Session = Depends(getdb)):
     db_url = get_url_by_short_code(db, short_code)
     if not db_url:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Short URL not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Short URL not found.")
 
     deactivate_url_records(db, db_url)
+    delete_cached_url(short_code)  # <--- Invalidate Redis cache!
     return {"message": f"Short URL '{short_code}' has been deactivated successfully."}
