@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, HttpUrl, Field
 
 class URLBase(BaseModel):
-    target_url = HttpUrl
+    target_url : HttpUrl | str
 
 class URLCreate(URLBase):
     custom_alias: str | None = Field(default=None, max_length=10)
