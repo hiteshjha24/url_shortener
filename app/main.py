@@ -1,21 +1,33 @@
-# app/main.py
-
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, Request
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
-from app.services.cache import get_cached_url, set_cached_url
+from slowapi.errors import RateLimitExceeded
+
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.session import engine, Base, getdb
 from app.api.endpoints import router as api_router
 from app.services.crud import get_url_by_short_code, increment_click_count_background
+from app.services.cache import get_cached_url, set_cached_url
 
-# Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"}
+    )
+
+# Include API endpoints
 app.include_router(api_router, prefix=settings.API_V1_STR)
-# app/main.py (updated redirect_to_target)
 
 
 @app.get("/{short_code}", response_class=RedirectResponse, status_code=status.HTTP_302_FOUND)
@@ -24,13 +36,13 @@ def redirect_to_target(
     background_tasks: BackgroundTasks,
     db: Session = Depends(getdb)
 ):
-    # Step 1: Check Redis Cache (Sub-millisecond)
+    # 1. Check Redis Cache
     cached_target_url = get_cached_url(short_code)
     if cached_target_url:
         background_tasks.add_task(increment_click_count_background, short_code)
         return RedirectResponse(url=cached_target_url, status_code=status.HTTP_302_FOUND)
 
-    # Step 2: Cache Miss -> Fallback to Database
+    # 2. Database Fallback
     db_url = get_url_by_short_code(db, short_code)
     if not db_url:
         raise HTTPException(
@@ -50,9 +62,7 @@ def redirect_to_target(
                 detail="This short URL has expired."
             )
 
-    # Step 3: Populate Redis Cache for subsequent requests
+    # 3. Cache & Redirect
     set_cached_url(short_code, db_url.target_url)
-
-    # Step 4: Track click and redirect
     background_tasks.add_task(increment_click_count_background, short_code)
     return RedirectResponse(url=db_url.target_url, status_code=status.HTTP_302_FOUND)
