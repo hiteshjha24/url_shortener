@@ -14,7 +14,7 @@ def get_cached_url(short_code: str) -> str | None:
 
 def set_cached_url(short_code: str, target_url: str, ttl: int = DEFAULT_CACHE_TTL) -> None:
     try:
-        redis_client.setex(f"url:{short_code}", ttl, target_url)
+        redis_client.set(f"url:{short_code}", str(target_url), ex=ttl)
     except Exception:
         pass
 

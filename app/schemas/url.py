@@ -1,8 +1,8 @@
 from datetime import datetime
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, HttpUrl, Field, ConfigDict
 
 class URLBase(BaseModel):
-    target_url : HttpUrl | str
+    target_url : HttpUrl 
 
 class URLCreate(URLBase):
     custom_alias: str | None = Field(default=None, max_length=10)
@@ -14,9 +14,7 @@ class URLResponse(URLBase):
     created_at: datetime
     expires_at: datetime | None
     is_active: bool
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class URLStats(URLResponse):
     clicks:int
