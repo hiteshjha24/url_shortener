@@ -2,9 +2,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from app.core.limiter import limiter
 from app.services.cache import delete_cached_url
 from app.db.session import getdb
 from app.schemas.url import URLCreate, URLResponse, URLStats
+from app.api.deps import get_current_user, get_current_user_optional
+from app.models.user import User
+from app.models.url import URL
 from app.services.crud import (
     get_url_by_short_code,
     create_url_record,
@@ -15,13 +19,15 @@ from app.services.shortener import generate_random_code, calculate_expiration_da
 
 router = APIRouter()
 
-
 @router.post("/shorten", response_model=URLResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 def create_short_url(
-    url_in: URLCreate,
     request: Request,
-    db: Session = Depends(getdb)
+    url_in: URLCreate,
+    db: Session = Depends(getdb),
+    current_user: User | None = Depends(get_current_user_optional)  # <--- Optional user
 ):
+    # Short code logic remains the same...
     if url_in.custom_alias:
         existing_url = get_url_by_short_code(db, url_in.custom_alias)
         if existing_url:
@@ -43,8 +49,8 @@ def create_short_url(
             )
 
     expires_at = calculate_expiration_date(url_in.expires_in_days)
-
-    db_url = create_url_record(db, url_in, short_code, expires_at)
+    user_id = current_user.id if current_user else None
+    db_url = create_url_record(db, url_in, short_code, expires_at, user_id=user_id)
 
     base_url = str(request.base_url).rstrip("/")
     return URLResponse(
@@ -57,17 +63,38 @@ def create_short_url(
     )
 
 
-@router.get("/stats/{short_code}", response_model=URLStats)
-def get_url_statistics(
-    short_code: str,
+@router.get("/urls/me", response_model=list[URLStats])
+def get_my_urls(
     request: Request,
-    db: Session = Depends(getdb)
+    db: Session = Depends(getdb),
+    current_user: User = Depends(get_current_user)  # <--- Strict auth required
 ):
+    """Retrieve all short URLs created by the authenticated user."""
+    urls = db.query(URL).filter(URL.user_id == current_user.id).all()
+    base_url = str(request.base_url).rstrip("/")
+
+    return [
+        URLStats(
+            target_url=u.target_url,
+            short_code=u.short_code,
+            short_url=f"{base_url}/{u.short_code}",
+            created_at=u.created_at,
+            expires_at=u.expires_at,
+            is_active=u.is_active,
+            clicks=u.clicks,
+        )
+        for u in urls
+    ]
+
+
+@router.get("/stats/{short_code}", response_model=URLStats)
+@router.get("/info/{short_code}", response_model=URLStats)
+def get_short_url_stats(request: Request, short_code: str, db: Session = Depends(getdb)):
     db_url = get_url_by_short_code(db, short_code)
     if not db_url:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Short URL not found."
+            detail="Short URL not found or inactive."
         )
 
     base_url = str(request.base_url).rstrip("/")

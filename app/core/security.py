@@ -1,20 +1,25 @@
+# app/core/security.py
+
 from datetime import datetime, timedelta, timezone
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its bcrypt hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plain password against its stored bcrypt hash."""
+    password_bytes = plain_password.encode("utf-8")[:72]
+    hashed_bytes = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def get_password_hash(password: str) -> str:
-    """Generate a bcrypt hash from plain password."""
-    return pwd_context.hash(password)
+    """Generate a secure bcrypt hash from a plain password."""
+    # Bcrypt has a 72-byte limit
+    password_bytes = password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from slowapi.errors import RateLimitExceeded
-
+from app.api.auth import router as auth_router
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.db.session import engine, Base, getdb
@@ -15,6 +16,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.state.limiter = limiter
 
@@ -27,8 +35,8 @@ def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 # Include API endpoints
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
+app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"])
+app.include_router(api_router, prefix=settings.API_V1_STR, tags=["URLs"])
 
 @app.get("/{short_code}", response_class=RedirectResponse, status_code=status.HTTP_302_FOUND)
 def redirect_to_target(
@@ -36,13 +44,7 @@ def redirect_to_target(
     background_tasks: BackgroundTasks,
     db: Session = Depends(getdb)
 ):
-    # 1. Check Redis Cache
-    cached_target_url = get_cached_url(short_code)
-    if cached_target_url:
-        background_tasks.add_task(increment_click_count_background, short_code)
-        return RedirectResponse(url=cached_target_url, status_code=status.HTTP_302_FOUND)
-
-    # 2. Database Fallback
+    # Database lookup
     db_url = get_url_by_short_code(db, short_code)
     if not db_url:
         raise HTTPException(
@@ -62,7 +64,8 @@ def redirect_to_target(
                 detail="This short URL has expired."
             )
 
-    # 3. Cache & Redirect
-    set_cached_url(short_code, db_url.target_url)
+    # Increment clicks in background (non-blocking)
     background_tasks.add_task(increment_click_count_background, short_code)
+    
+    # Redirect to target
     return RedirectResponse(url=db_url.target_url, status_code=status.HTTP_302_FOUND)

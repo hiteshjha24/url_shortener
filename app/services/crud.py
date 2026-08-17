@@ -7,16 +7,20 @@ from app.schemas.url import URLCreate
 def get_url_by_short_code(db: Session, short_code: str)-> URL | None:
     return db.query(URL).filter(URL.short_code == short_code, URL.is_active == True).first()
 
+# In app/services/crud.py, add user_id parameter:
+
 def create_url_record(
-        db : Session,
-        url_in: URLCreate,
-        short_code: str,
-        expires_at : datetime | None
-)-> URL:
+    db: Session,
+    url_in: URLCreate,
+    short_code: str,
+    expires_at: datetime | None,
+    user_id: int | None = None  # <--- Added
+) -> URL:
     db_url = URL(
-        target_url = str(url_in.target_url),
-        short_code = short_code,
-        expires_at= expires_at
+        target_url=str(url_in.target_url),
+        short_code=short_code,
+        expires_at=expires_at,
+        user_id=user_id  # <--- Linked
     )
     db.add(db_url)
     db.commit()

@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #e7eefb;
+  background: #07111f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --bg: #07111f;
+  --bg-strong: #0d172a;
+  --panel: rgba(15, 23, 42, 0.72);
+  --panel-strong: rgba(15, 23, 42, 0.9);
+  --card: #0f1b2d;
+  --card-alt: #121f33;
+  --border: rgba(148, 163, 184, 0.18);
+  --primary: #7c9cff;
+  --primary-strong: #5a7cff;
+  --secondary: #1dd1a1;
+  --accent: #86efac;
+  --danger: #ff6b81;
+  --text: #e2e8f0;
+  --muted: #a7b7d6;
+  --shadow: 0 24px 80px rgba(8, 15, 30, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(124, 156, 255, 0.2), transparent 28%),
+    linear-gradient(180deg, #07111f 0%, #0b1527 100%);
+  color: var(--text);
+}
+
+button, input, a { font: inherit; }
+
+button, input { border-radius: 12px; }
+
+#root {
+  min-height: 100vh;
+}
+
+img { max-width: 100%; display: block; }
+
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3, p { margin: 0; }
+
+input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.9rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus {
+  border-color: rgba(124, 156, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.18);
+}
+
+input::placeholder { color: var(--muted); }
