@@ -49,7 +49,7 @@ export function HomePage() {
       <section className="hero-panel">
         <div className="hero-copy">
           <span className="eyebrow">Fast links for modern teams</span>
-          <h1>Turn long links into high-converting short URLs.</h1>
+          <h1>Turn long links into <span>high-converting</span> short URLs.</h1>
           <p>
             Create precise, trackable links in seconds. Built for speed, trust, and reliability.
           </p>
@@ -73,6 +73,14 @@ export function HomePage() {
         </div>
 
         <form className="shortener-card" onSubmit={handleSubmit}>
+          <div className="card-heading">
+            <div className="card-icon" aria-hidden="true">↗</div>
+            <div>
+              <span className="small-label">Link studio</span>
+              <h2>Create a short link</h2>
+            </div>
+            <span className="live-badge"><span /> Ready</span>
+          </div>
           <div className="field-group">
             <label htmlFor="target_url">Original URL</label>
             <input
@@ -137,6 +145,18 @@ export function HomePage() {
           ) : null}
         </form>
       </section>
+
+      <footer className="home-footer">
+        <div>
+          <span className="footer-kicker">Dock-URL</span>
+          <p>Short links, thoughtfully made.</p>
+        </div>
+        <div className="footer-links" aria-label="Contact and social links">
+          <a href="https://github.com/hiteshjha24" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://www.linkedin.com/in/hiteshjha24/" target="_blank" rel="noreferrer">LinkedIn</a>
+          <a href="mailto:hiteshjha1609@gmail.com">Email</a>
+        </div>
+      </footer>
     </div>
   )
 }

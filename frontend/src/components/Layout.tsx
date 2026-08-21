@@ -10,11 +10,13 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="app-shell">
+      <div className="ambient ambient-one" aria-hidden="true" />
+      <div className="ambient ambient-two" aria-hidden="true" />
       <header className="topbar">
         <div className="brand-wrap">
           <Link to="/" className="brand" aria-label="Go to home">
-            <span className="brand-mark">S</span>
-            <span>Shortly</span>
+            <span className="brand-mark">D</span>
+            <span className="brand-name">Dock-URL</span>
           </Link>
         </div>
 
@@ -39,6 +41,7 @@ export function Layout({ children }: LayoutProps) {
 
         {isAuthenticated && userEmail ? (
           <div className="user-chip" aria-label="Authenticated user">
+            <span className="user-dot" aria-hidden="true" />
             {userEmail}
           </div>
         ) : null}

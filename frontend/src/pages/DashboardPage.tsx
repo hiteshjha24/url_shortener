@@ -71,6 +71,13 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-page">
+      <div className="dashboard-heading">
+        <div>
+          <span className="eyebrow">Your workspace</span>
+          <h1>Link performance, at a glance.</h1>
+        </div>
+        <span className="dashboard-caption">Manage every destination from one calm, focused space.</span>
+      </div>
       <div className="stats-grid">
         <div className="stat-card">
           <span>Total links</span>
