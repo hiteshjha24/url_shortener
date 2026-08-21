@@ -7,18 +7,16 @@ from slowapi.errors import RateLimitExceeded
 from app.api.auth import router as auth_router
 from app.core.config import settings
 from app.core.limiter import limiter
-from app.db.session import engine, Base, getdb
+from app.db.session import getdb
 from app.api.endpoints import router as api_router
 from app.services.crud import get_url_by_short_code, increment_click_count_background
 from app.services.cache import get_cached_url, set_cached_url
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

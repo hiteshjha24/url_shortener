@@ -278,6 +278,69 @@ For more detailed output:
 
 ```bash
 pytest -v
+
+---
+
+# ☁️ Deploying with Vercel
+
+The repository is configured as two Vercel projects: one for the FastAPI backend and one for the Vite frontend. Use a hosted Postgres database because Vercel's filesystem is ephemeral and SQLite data will not persist between deployments.
+
+## 1. Create the database
+
+Neon, Supabase, or another managed PostgreSQL provider works. Neon is a simple option:
+
+1. Create an account at [neon.tech](https://neon.tech) and create a project.
+2. Copy the pooled or direct connection string. It should look like `postgresql://user:password@host/database?sslmode=require`.
+3. Keep this value private. It will be added to Vercel as `DATABASE_URL`.
+
+Redis is optional. The app treats Redis connection failures as cache misses. Add an Upstash Redis database later if you want caching and set `REDIS_HOST` and `REDIS_PORT` accordingly.
+
+## 2. Deploy the backend
+
+1. In Vercel, select **Add New Project**, import this Git repository, and name the project (for example, `url-shortener-api`).
+2. Leave the project root at the repository root. The included `vercel.json` and `api/index.py` configure the FastAPI function.
+3. Add these Production environment variables:
+
+    ```text
+    DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+    SECRET_KEY=<long-random-secret>
+    CORS_ORIGINS=https://<your-frontend-project>.vercel.app
+    ```
+
+4. Deploy and copy the backend URL, for example `https://url-shortener-api.vercel.app`.
+
+## 3. Run the database migrations
+
+Run this from the repository root on your machine with the same database URL:
+
+```powershell
+$env:DATABASE_URL = "postgresql://user:password@host/database?sslmode=require"
+python -m pip install -r requirements.txt
+alembic upgrade head
+```
+
+The command creates the `urls`, `users`, and Alembic version tables. Run it once before using the deployed API, and run it again after adding future migrations.
+
+## 4. Deploy the frontend
+
+1. Create a second Vercel project from the same repository.
+2. Set **Root Directory** to `frontend`.
+3. Vercel should detect Vite. Use `npm run build` as the build command and `dist` as the output directory.
+4. Add this Production environment variable:
+
+    ```text
+    VITE_API_BASE_URL=https://<your-backend-project>.vercel.app/api/v1
+    ```
+
+5. Deploy. The included `frontend/vercel.json` keeps React Router routes working on direct page refreshes.
+
+## 5. Finish CORS setup
+
+Copy the final frontend Vercel URL into the backend project's `CORS_ORIGINS` variable. Redeploy the backend after changing it. For a custom frontend domain, use that domain instead of the temporary `vercel.app` URL.
+
+## Local environment files
+
+Copy `.env.example` to `.env` for the backend and `frontend/.env.example` to `frontend/.env.local` for local development. Do not commit either file; `.env` is already ignored.
 ```
 
 The tests cover important functionality such as:
